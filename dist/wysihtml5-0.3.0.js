@@ -4524,7 +4524,7 @@ wysihtml5.dom.getStyle = (function() {
         // Opera supports both, currentStyle and window.getComputedStyle, that's why checking for currentStyle should have higher prio
         if (currentStyle) {
           try {
-                return currentStyle[camelizedProperty];
+            return currentStyle[camelizedProperty];
           } catch(e) {
             //ie will occasionally fail for unknown reasons. swallowing exception
           }
@@ -6853,7 +6853,7 @@ wysihtml5.commands.bold = {
         dom.setTextContent(anchor, attributes.text || anchor.href);
         whiteSpace = doc.createTextNode(" ");
         composer.selection.setAfter(anchor);
-        composer.selection.insertNode(whiteSpace);
+        dom.insert(whiteSpace).after(anchor);
         elementToSetCaretAfter = whiteSpace;
       }
     }
@@ -8380,7 +8380,8 @@ wysihtml5.views.View = Base.extend(
         hasPlaceholder        = textareaElement.hasAttribute("placeholder"),
         originalPlaceholder   = hasPlaceholder && textareaElement.getAttribute("placeholder"),
         originalDisplayValue  = textareaElement.style.display,
-        originalDisabled      = textareaElement.disabled;
+        originalDisabled      = textareaElement.disabled,
+        displayValueForCopying;
     
     this.focusStylesHost      = HOST_TEMPLATE.cloneNode(false);
     this.blurStylesHost       = HOST_TEMPLATE.cloneNode(false);
@@ -8399,7 +8400,12 @@ wysihtml5.views.View = Base.extend(
     textareaElement.disabled = false;
     
     // set textarea to display="none" to get cascaded styles via getComputedStyle
-    textareaElement.style.display = "none";
+    textareaElement.style.display = displayValueForCopying = "none";
+    
+    if ((textareaElement.getAttribute("rows") && dom.getStyle("height").from(textareaElement) === "auto") ||
+        (textareaElement.getAttribute("cols") && dom.getStyle("width").from(textareaElement) === "auto")) {
+      textareaElement.style.display = displayValueForCopying = originalDisplayValue;
+    }
     
     // --------- iframe styles (has to be set before editor styles, otherwise IE9 sets wrong fontFamily on blurStylesHost) ---------
     dom.copyStyles(BOX_FORMATTING).from(textareaElement).to(this.iframe).andTo(this.blurStylesHost);
@@ -8417,7 +8423,10 @@ wysihtml5.views.View = Base.extend(
     textareaElement.disabled = originalDisabled;
     
     // --------- :focus styles ---------
+    textareaElement.style.display = originalDisplayValue;
     focusWithoutScrolling(textareaElement);
+    textareaElement.style.display = displayValueForCopying;
+    
     dom.copyStyles(BOX_FORMATTING).from(textareaElement).to(this.focusStylesHost);
     dom.copyStyles(TEXT_FORMATTING).from(textareaElement).to(this.focusStylesHost);
     
